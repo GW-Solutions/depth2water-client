@@ -91,10 +91,14 @@ class Depth2WaterClient:
         return self._user_id
     
     def get_station_by_station_id(self, station_id):
+        return self.get_station_by_value('station_id', station_id)
+
+    def get_station_by_value(self, column, value):
         search_params = [
-            {'operator': '', 'column': 'station_id', 'searchTerm': station_id, 'orderBy': '', 'direction': ''}]
+            {'operator': '', 'column': column, 'searchTerm': value, 'orderBy': '', 'direction': ''}]
         resp = self._get_searchable(self._build_url(self.STATION_PATH), search_params)
-        return resp
+        results = resp.json().get('results', [])
+        return results
 
     def _get_searchable(self, path, search_params=[]):
         return self.get(path, params={'searchParams': json.dumps(search_params)})
