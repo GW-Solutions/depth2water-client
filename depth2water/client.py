@@ -1,3 +1,4 @@
+import json
 import logging
 from urllib.parse import urlunparse
 
@@ -27,6 +28,8 @@ class Depth2WaterClient:
     SOURCE_FILE_PATH = '/api/v1/sourcefile/'
     CURRENT_USER_PATH = '/api/user/'
     USER_DETAIL_PATH = '/api/v1/users/{}/'
+    STATION_PATH = '/api/v1/stations/'
+
 
     def __init__(self, username, password, client_id, client_secret, *, host='localhost:8000', scheme='http'):
         self._username = username
@@ -86,6 +89,15 @@ class Depth2WaterClient:
         log_debug(f'Got current user {user}')
         self._user_id = user['id']
         return self._user_id
+    
+    def get_station_by_station_id(self, station_id):
+        search_params = [
+            {'operator': '', 'column': 'station_id', 'searchTerm': station_id, 'orderBy': '', 'direction': ''}]
+        resp = self._get_searchable(self._build_url(self.STATION_PATH), search_params)
+        return resp
+
+    def _get_searchable(self, path, search_params=[]):
+        return self.get(path, params={'searchParams': json.dumps(search_params)})
 
     def post_csv_file(self, filename, mappings):
         if not mappings['owner']:
