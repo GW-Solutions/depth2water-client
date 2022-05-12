@@ -96,12 +96,12 @@ class Depth2WaterClient:
     def get_station_by_value(self, column, value):
         search_params = [
             {'operator': '', 'column': column, 'searchTerm': value, 'orderBy': '', 'direction': ''}]
-        resp = self._get_searchable(self._build_url(self.STATION_PATH), search_params)
+        resp = self._get_searchable(self.STATION_PATH, search_params)
         results = resp.json().get('results', [])
         return results
 
     def _get_searchable(self, path, search_params=[]):
-        return self.get(path, params={'searchParams': json.dumps(search_params)})
+        return self.get(self._build_url(path), params={'searchParams': json.dumps(search_params)})
 
     def post_csv_file(self, filename, mappings):
         if not mappings['owner']:
