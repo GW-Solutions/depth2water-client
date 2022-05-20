@@ -16,7 +16,105 @@ def get_climate_mapping(mapping=None):
     return ClimateMapping().mapping
 
 
+def get_station_mapping(mapping=None):
+    if mapping:
+        return StationMapping().get_mapping(mapping)
+    return StationMapping().mapping
+
+
+def get_groundwater_station_mapping(mapping=None):
+    if mapping:
+        return GroundwaterStationMapping().get_mapping(mapping)
+    return GroundwaterStationMapping().mapping
+
+
+def get_surface_water_station_mapping(mapping=None):
+    if mapping:
+        return SurfaceWaterStationMapping().get_mapping(mapping)
+    return SurfaceWaterStationMapping().mapping
+
+
+def get_climate_station_mapping(mapping=None):
+    if mapping:
+        return ClimateMapping().get_mapping(mapping)
+    return ClimateMapping().mapping
+
+
 class Mapping:
+    _BASE_MAPPING = {}
+    _MAPPING = {}
+
+    @property
+    def mapping(self):
+        new_mapping = dict(self._BASE_MAPPING)
+        new_mapping.update(self._MAPPING)
+        return new_mapping
+
+    def get_mapping(self, mapping):
+        new_mapping = self.mapping
+        new_mapping.update(mapping)
+        return new_mapping
+
+
+class StationMapping(Mapping):
+    _BASE_MAPPING = {
+        'accuracy_elevation': '',
+        'accuracy_location': '',
+        'aquifer_number': '',
+        'easting_m': '',
+        'ground_elevation_m': '',
+        'latitude': '',
+        'location_name': '',
+        'longitude': '',
+        'monitoring_status': 'ACTIVE',
+        'monitoring_type': '',
+        'northing_m': '',
+        'prov_terr_state_lc': '',
+        'pump_depth_m': '',
+        'sounder_pipe_m': '',
+        'station_id': '',
+        'client_id': '',
+        'top_of_casing_m': '',
+        'well_aquifer_type': '',
+        'well_depth_m': '',
+        'well_id_plate': '',
+        'well_tag_number': '',
+        'zone': '',
+        'zone_meta': '',
+        'waterbody_type': '',
+        'waterbody_name': '',
+        'watershed_name': '',
+        'watershed_area': '',
+        'climate_id': '',
+        'wmo_id': '',
+        'tc_id': '',
+        'measurement_frequency': '',
+        'aquifer_description': '',
+        'data_interpretation': '',
+        'owner': ''
+    }
+
+
+class GroundwaterStationMapping(StationMapping):
+    _MAPPING = {
+        'monitoring_type': 'GROUNDWATER'
+    }
+
+
+
+class SurfaceWaterStationMapping(StationMapping):
+    _MAPPING = {
+        'monitoring_type': 'SURFACE_WATER'
+    }
+
+
+class ClimateStationMapping(StationMapping):
+    _MAPPING = {
+        'monitoring_type': 'CLIMATE'
+    }
+
+
+class TimeSeriesMapping(Mapping):
     _BASE_MAPPING = {
         'logger': '',
         'station': '',
@@ -41,21 +139,9 @@ class Mapping:
         'datetime_timezone': 'America/Vancouver',
         'date_timezone': 'America/Vancouver'
     }
-    _MAPPING = {}
-
-    @property
-    def mapping(self):
-        new_mapping = dict(self._BASE_MAPPING)
-        new_mapping.update(self._MAPPING)
-        return new_mapping
-
-    def get_mapping(self, mapping):
-        new_mapping = self.mapping
-        new_mapping.update(mapping)
-        return new_mapping
 
 
-class GroundwaterMapping(Mapping):
+class GroundwaterMapping(TimeSeriesMapping):
     _MAPPING = {
         'monitoring_type': 'GROUNDWATER',
         'compensation_station': '',
@@ -81,7 +167,7 @@ class GroundwaterMapping(Mapping):
     }
 
 
-class SurfaceWaterMapping(Mapping):
+class SurfaceWaterMapping(TimeSeriesMapping):
     _MAPPING = {
         'monitoring_type': 'SURFACE_WATER',
         'barometric_pressure_units': '',
@@ -95,7 +181,7 @@ class SurfaceWaterMapping(Mapping):
     }
 
 
-class ClimateMapping(Mapping):
+class ClimateMapping(TimeSeriesMapping):
     _MAPPING = {
         'monitoring_type': 'CLIMATE',
         'temperature_c': '',

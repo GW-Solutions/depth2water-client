@@ -101,6 +101,14 @@ class Depth2WaterClient:
                 raise Exception(response.text)
         return response
     
+    def create_station(self, mappings):
+        if not mappings['owner']:
+            mappings['owner'] = self._user_id
+        mappings['owner'] = self._build_url(self.USER_DETAIL_PATH.format(mappings['owner']))
+        log_info("OWNER URL {}".format(mappings["owner"]))
+        response = self.post(self._build_url(self.STATION_PATH), data=mappings)
+        return response.json()
+    
     def get_station_by_station_id(self, station_id):
         return self.get_station_by_value('station_id', station_id)
 
