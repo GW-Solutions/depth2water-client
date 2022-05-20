@@ -29,6 +29,11 @@ class Depth2WaterClient:
     CURRENT_USER_PATH = '/api/user/'
     USER_DETAIL_PATH = '/api/v1/users/{}/'
     STATION_PATH = '/api/v1/stations/'
+    TIME_SERIES_PATHS = {
+        'GROUNDWATER': '/api/v1/groundwater/',
+        'SURFACE_WATER': '/api/v1/surfacewater/',
+        'CLIMATE': '/api/v1/climate/'
+    }
 
 
     def __init__(self, username, password, client_id, client_secret, *, host='localhost:8000', scheme='http'):
@@ -43,6 +48,8 @@ class Depth2WaterClient:
 
     def __str__(self):
         return f'<Depth2WaterClient: {self._username}>'
+
+
 
     def _request_response_handler(func):
         def wrapper(self, *args, **kwargs):
@@ -67,15 +74,6 @@ class Depth2WaterClient:
     def get(self, *args, **kwargs):
         return requests.get(*args, **kwargs)
 
-    def _build_url(self, path):
-        return urlunparse((self._scheme, self._host, path, '', '', ''))
-
-    def _get_login_data(self):
-        return {
-            'grant_type': 'password',
-            'username': self._username,
-            'password': self._password}
-
     def get_and_set_token(self):
         resp = self.post(
             self._build_url(self.TOKEN_PATH), data=self._get_login_data(), auth=(self._client_id, self._client_secret))
@@ -89,19 +87,6 @@ class Depth2WaterClient:
         log_debug(f'Got current user {user}')
         self._user_id = user['id']
         return self._user_id
-    
-    def get_station_by_station_id(self, station_id):
-        return self.get_station_by_value('station_id', station_id)
-
-    def get_station_by_value(self, column, value):
-        search_params = [
-            {'operator': '', 'column': column, 'searchTerm': value, 'orderBy': '', 'direction': ''}]
-        resp = self._get_searchable(self.STATION_PATH, search_params)
-        results = resp.json().get('results', [])
-        return results
-
-    def _get_searchable(self, path, search_params=[]):
-        return self.get(self._build_url(path), params={'searchParams': json.dumps(search_params)})
 
     def post_csv_file(self, filename, mappings):
         if not mappings['owner']:
@@ -115,3 +100,69 @@ class Depth2WaterClient:
             if response.status_code != 201:  # this isn't ideal
                 raise Exception(response.text)
         return response
+    
+    def get_station_by_station_id(self, station_id):
+        return self.get_station_by_value('station_id', station_id)
+
+    def get_station_by_value(self, column, value):
+        search_params = [
+            {'operator': '', 'column': column, 'searchTerm': value, 'orderBy': '', 'direction': ''}]
+        resp = self._get_searchable(self.STATION_PATH, search_params)
+        results = resp.json().get('results', [])
+        return results
+
+    def get_groundwater_data(self, station_id=None, start_date=None, end_date=None):
+        return self.get_time_series_data(
+            'GROUNDWATER', station_id=station_id, start_date=start_date, end_date=end_date)
+
+    def get_surface_water_data(self, station_id=None, start_date=None, end_date=None):
+        return self.get_time_series_data(
+            'SURFACE_WATER', station_id=station_id, start_date=start_date, end_date=end_date)
+
+    def get_climate_data(self, station_id=None, start_date=None, end_date=None):
+        return self.get_time_series_data(
+            'CLIMATE', station_id=station_id, start_date=start_date, end_date=end_date)
+
+    def get_time_series_data(self, monitoring_type, station_id=None, start_date=None, end_date=None):
+        path = self.TIME_SERIES_PATHS[monitoring_type.upper()]
+        search_params = []
+        if station_id:
+            search_params.append({
+                'operator': '',
+                'column': 'station.station_id',
+                'searchTerm': station_id,
+                'orderBy': False,
+                'direction': ''})
+        if start_date:
+            search_params.append({
+                'operator': 'gte',
+                'column': 'datetime',
+                'searchTerm': start_date,
+                'orderBy': True,
+                'direction': 'asc'})
+        if end_date:
+            search_params.append({
+                'operator': 'lte',
+                'column': 'datetime',
+                'searchTerm': end_date,
+                'orderBy': False,
+                'direction': ''})
+        resp = self._get_searchable(path, search_params=search_params)
+        results = resp.json().get('results', [])
+        return results
+
+
+
+    def _get_searchable(self, path, search_params=[]):
+        return self.get(self._build_url(path), params={'searchParams': json.dumps(search_params)})
+
+    def _build_url(self, path):
+        return urlunparse((self._scheme, self._host, path, '', '', ''))
+
+    def _get_login_data(self):
+        return {
+            'grant_type': 'password',
+            'username': self._username,
+            'password': self._password}
+
+
