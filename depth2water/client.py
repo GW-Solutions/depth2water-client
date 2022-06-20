@@ -49,8 +49,6 @@ class Depth2WaterClient:
     def __str__(self):
         return f'<Depth2WaterClient: {self._username}>'
 
-
-
     def _request_response_handler(func):
         def wrapper(self, *args, **kwargs):
             if 'headers' in kwargs:
@@ -110,28 +108,27 @@ class Depth2WaterClient:
         return response.json()
     
     def get_station_by_station_id(self, station_id):
-        return self.get_station_by_value('station_id', station_id)
+        return self.get_station_by_value(column='station_id', value=station_id)
 
-    def get_station_by_value(self, column, value):
+    def get_station_by_value(self, column=None, value=None, url=None, page=None):
         search_params = [
             {'operator': '', 'column': column, 'searchTerm': value, 'orderBy': '', 'direction': ''}]
-        resp = self._get_searchable(self.STATION_PATH, search_params)
-        results = resp.json().get('results', [])
-        return results
+        resp = self._get_searchable(self.STATION_PATH, search_params, url=url, page=page)
+        return resp.json()
 
-    def get_groundwater_data(self, station_id=None, start_date=None, end_date=None):
+    def get_groundwater_data(self, station_id=None, start_date=None, end_date=None, url=None, page=None):
         return self.get_time_series_data(
-            'GROUNDWATER', station_id=station_id, start_date=start_date, end_date=end_date)
+            'GROUNDWATER', station_id=station_id, start_date=start_date, end_date=end_date, url=url, page=page)
 
-    def get_surface_water_data(self, station_id=None, start_date=None, end_date=None):
+    def get_surface_water_data(self, station_id=None, start_date=None, end_date=None, url=None, page=None):
         return self.get_time_series_data(
-            'SURFACE_WATER', station_id=station_id, start_date=start_date, end_date=end_date)
+            'SURFACE_WATER', station_id=station_id, start_date=start_date, end_date=end_date, url=url, page=page)
 
-    def get_climate_data(self, station_id=None, start_date=None, end_date=None):
+    def get_climate_data(self, station_id=None, start_date=None, end_date=None, url=None, page=None):
         return self.get_time_series_data(
-            'CLIMATE', station_id=station_id, start_date=start_date, end_date=end_date)
+            'CLIMATE', station_id=station_id, start_date=start_date, end_date=end_date, url=url, page=page)
 
-    def get_time_series_data(self, monitoring_type, station_id=None, start_date=None, end_date=None):
+    def get_time_series_data(self, monitoring_type, station_id=None, start_date=None, end_date=None, page=None, url=None):
         path = self.TIME_SERIES_PATHS[monitoring_type.upper()]
         search_params = []
         if station_id:
@@ -155,17 +152,20 @@ class Depth2WaterClient:
                 'searchTerm': end_date,
                 'orderBy': False,
                 'direction': ''})
-        resp = self._get_searchable(path, search_params=search_params)
-        results = resp.json().get('results', [])
-        return results
+        resp = self._get_searchable(path, search_params=search_params, page=page, url=url)
+        return resp.json()
 
+    def _get_searchable(self, path, search_params=[], page=None, url=None):
+        if url:
+            return self.get(url)
+        return self.get(self._build_url(path, page=page), params={'searchParams': json.dumps(search_params)})
 
-
-    def _get_searchable(self, path, search_params=[]):
-        return self.get(self._build_url(path), params={'searchParams': json.dumps(search_params)})
-
-    def _build_url(self, path):
-        return urlunparse((self._scheme, self._host, path, '', '', ''))
+    def _build_url(self, path, page=None):
+        if page:
+            query = f'page={page}'
+        else:
+            query = ''
+        return urlunparse((self._scheme, self._host, path, '', query, ''))
 
     def _get_login_data(self):
         return {

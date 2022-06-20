@@ -36,8 +36,8 @@ def get_surface_water_station_mapping(mapping=None):
 
 def get_climate_station_mapping(mapping=None):
     if mapping:
-        return ClimateMapping().get_mapping(mapping)
-    return ClimateMapping().mapping
+        return ClimateStationMapping().get_mapping(mapping)
+    return ClimateStationMapping().mapping
 
 
 class Mapping:
