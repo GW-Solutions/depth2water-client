@@ -29,10 +29,16 @@ class Depth2WaterClient:
     CURRENT_USER_PATH = '/api/user/'
     USER_DETAIL_PATH = '/api/v1/users/{}/'
     STATION_PATH = '/api/v1/stations/'
+    STATION_DETAIL_PATH = '/api/v1/stations/{}/'
     TIME_SERIES_PATHS = {
         'GROUNDWATER': '/api/v1/groundwater/',
         'SURFACE_WATER': '/api/v1/surfacewater/',
         'CLIMATE': '/api/v1/climate/'
+    }
+    TIME_SERIES_DETAIL_PATHS = {
+        'GROUNDWATER': '/api/v1/groundwater/{}/',
+        'SURFACE_WATER': '/api/v1/surfacewater/{}/',
+        'CLIMATE': '/api/v1/climate/{}/'
     }
 
 
@@ -69,8 +75,16 @@ class Depth2WaterClient:
         return requests.post(*args, **kwargs)
 
     @_request_response_handler
+    def put(self, *args, **kwargs):
+        return requests.put(*args, **kwargs)
+
+    @_request_response_handler
     def get(self, *args, **kwargs):
         return requests.get(*args, **kwargs)
+
+    @_request_response_handler
+    def delete(self, *args, **kwargs):
+        return requests.delete(*args, **kwargs)
 
     def get_and_set_token(self):
         resp = self.post(
@@ -98,7 +112,8 @@ class Depth2WaterClient:
             if response.status_code != 201:  # this isn't ideal
                 raise Exception(response.text)
         return response
-    
+
+    # Creates
     def create_station(self, mappings):
         if not mappings['owner']:
             mappings['owner'] = self._user_id
@@ -106,7 +121,8 @@ class Depth2WaterClient:
         log_info("OWNER URL {}".format(mappings["owner"]))
         response = self.post(self._build_url(self.STATION_PATH), data=mappings)
         return response.json()
-    
+
+    # Gets
     def get_station_by_station_id(self, station_id):
         return self.get_station_by_value(column='station_id', value=station_id)
 
@@ -154,6 +170,76 @@ class Depth2WaterClient:
                 'direction': ''})
         resp = self._get_searchable(path, search_params=search_params, page=page, url=url)
         return resp.json()
+
+    # Updates
+    def update_groundwater_data(self, id, data):
+        return self.update_time_series_data('GROUNDWATER', id, data)
+
+    def update_surface_water_data(self, id, data):
+        return self.update_time_series_data('SURFACE_WATER', id, data)
+
+    def update_climate_data(self, id, data):
+        return self.update_time_series_data('CLIMATE', id, data)
+
+    def update_time_series_data(self, monitoring_type, id, data):
+        return self.update(self.TIME_SERIES_DETAIL_PATHS[monitoring_type].format(id), data)
+
+    def update_station(self, id, data):
+        return self.update(self.STATION_DETAIL_PATH.format(id), data)
+
+    def update(self, path, data):
+        for key in data:
+            if data[key] is None:
+                data[key] = ''
+        resp = self.put(self._build_url(path), data=data)
+        return resp.json()
+
+    # Bulk update
+    def bulk_update_groundwater_data(self, station_id, start_date=None, end_date=None):
+        return self.bulk_update_time_series_data('GROUNDWATER', station_id, start_date=start_date, end_date=end_date)
+
+    def bulk_update_surface_water_data(self, station_id, start_date=None, end_date=None):
+        return self.bulk_update_time_series_data('SURFACE_WATER', station_id, start_date=start_date, end_date=end_date)
+
+    def bulk_update_climate_data(self, station_id, start_date=None, end_date=None):
+        return self.bulk_update_time_series_data('CLIMATE', station_id, start_date=start_date, end_date=end_date)
+
+    def bulk_update_time_series_data(self, monitoring_type, station_id, start_date=None, end_date=None):
+        pass
+
+    # Deletes
+
+    def delete_groundwater_data(self, id):
+        return self.delete_time_series_data('GROUNDWATER', id)
+
+    def delete_surface_water_data(self, id):
+        return self.delete_time_series_data('SURFACE_WATER', id)
+
+    def delete_climate_data(self, id):
+        return self.delete_time_series_data('CLIMATE', id)
+
+    def delete_time_series_data(self, monitoring_type, id):
+        return self.delete_data(self.TIME_SERIES_DETAIL_PATHS[monitoring_type].format(id))
+
+    def delete_station_data(self, id):
+        return self.delete_data(self.STATION_DETAIL_PATH.format(id))
+
+    def delete_data(self, path):
+        resp = self.delete(self._build_url(path))
+        return resp
+
+    # Bulk delete
+    def bulk_delete_groundwater_data(self, station_id, start_date=None, end_date=None, data=None):
+        return self.bulk_delete_time_series_data('GROUNDWATER', station_id, start_date=start_date, end_date=end_date, data=data)
+
+    def bulk_delete_surface_water_data(self, station_id, start_date=None, end_date=None, data=None):
+        return self.bulk_delete_time_series_data('SURFACE_WATER', station_id, start_date=start_date, end_date=end_date, data=data)
+
+    def bulk_delete_climate_data(self, station_id, start_date=None, end_date=None, data=None):
+        return self.bulk_delete_time_series_data('CLIMATE', station_id, start_date=start_date, end_date=end_date, data=data)
+
+    def bulk_delete_time_series_data(self, monitoring_type, station_id, start_date=None, end_date=None, data=None):
+        pass
 
     def _get_searchable(self, path, search_params=[], page=None, url=None):
         if url:
