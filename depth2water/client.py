@@ -40,7 +40,21 @@ class Depth2WaterClient:
         'SURFACE_WATER': '/api/v1/surfacewater/{}/',
         'CLIMATE': '/api/v1/climate/{}/'
     }
-
+    SEARCHABLE_BULK_DELETE_PATHS = {
+        'GROUNDWATER': '/api/v1/searchable-bulk-delete-groundwater',
+        'SURFACE_WATER': '/api/v1/searchable-bulk-delete-surface-water',
+        'CLIMATE': '/api/v1/searchable-bulk-delete-climate'
+    }
+    SEARCHABLE_BULK_UPDATE_PATHS = {
+        'GROUNDWATER': '/api/v1/searchable-bulk-update-groundwater',
+        'SURFACE_WATER': '/api/v1/searchable-bulk-update-surface-water',
+        'CLIMATE': '/api/v1/searchable-bulk-update-climate'
+    }
+    TARGET_TABLES = {
+        'GROUNDWATER': 'groundwater_groundwater',
+        'SURFACE_WATER': 'groundwater_surface_water',
+        'CLIMATE': 'groundwater_climate'
+    }
 
     def __init__(self, username, password, client_id, client_secret, *, host='localhost:8000', scheme='http'):
         self._username = username
@@ -146,28 +160,7 @@ class Depth2WaterClient:
 
     def get_time_series_data(self, monitoring_type, station_id=None, start_date=None, end_date=None, page=None, url=None):
         path = self.TIME_SERIES_PATHS[monitoring_type.upper()]
-        search_params = []
-        if station_id:
-            search_params.append({
-                'operator': '',
-                'column': 'station.station_id',
-                'searchTerm': station_id,
-                'orderBy': False,
-                'direction': ''})
-        if start_date:
-            search_params.append({
-                'operator': 'gte',
-                'column': 'datetime',
-                'searchTerm': start_date,
-                'orderBy': True,
-                'direction': 'asc'})
-        if end_date:
-            search_params.append({
-                'operator': 'lte',
-                'column': 'datetime',
-                'searchTerm': end_date,
-                'orderBy': False,
-                'direction': ''})
+        search_params = self.get_search_params(station_id, start_date=start_date, end_date=end_date)
         resp = self._get_searchable(path, search_params=search_params, page=page, url=url)
         return resp.json()
 
@@ -195,17 +188,25 @@ class Depth2WaterClient:
         return resp.json()
 
     # Bulk update
-    def bulk_update_groundwater_data(self, station_id, start_date=None, end_date=None):
-        return self.bulk_update_time_series_data('GROUNDWATER', station_id, start_date=start_date, end_date=end_date)
+    def bulk_update_groundwater_data(self, station_id, data, start_date=None, end_date=None, **kwargs):
+        return self.bulk_update_time_series_data(
+            'GROUNDWATER', station_id, data, start_date=start_date, end_date=end_date, **kwargs)
 
-    def bulk_update_surface_water_data(self, station_id, start_date=None, end_date=None):
-        return self.bulk_update_time_series_data('SURFACE_WATER', station_id, start_date=start_date, end_date=end_date)
+    def bulk_update_surface_water_data(self, station_id, data, start_date=None, end_date=None, **kwargs):
+        return self.bulk_update_time_series_data(
+            'SURFACE_WATER', station_id, data, start_date=start_date, end_date=end_date, **kwargs)
 
-    def bulk_update_climate_data(self, station_id, start_date=None, end_date=None):
-        return self.bulk_update_time_series_data('CLIMATE', station_id, start_date=start_date, end_date=end_date)
+    def bulk_update_climate_data(self, station_id, data, start_date=None, end_date=None, **kwargs):
+        return self.bulk_update_time_series_data(
+            'CLIMATE', station_id, data, start_date=start_date, end_date=end_date, **kwargs)
 
-    def bulk_update_time_series_data(self, monitoring_type, station_id, start_date=None, end_date=None):
-        pass
+    def bulk_update_time_series_data(self, monitoring_type, station_id, data, start_date=None, end_date=None, **kwargs):
+        path = self.SEARCHABLE_BULK_UPDATE_PATHS[monitoring_type]
+        target_table = self.TARGET_TABLES[monitoring_type]
+        search_params = self.get_search_params(station_id, start_date=start_date, end_date=end_date, **kwargs)
+        return self.post(
+            self._build_url(path), data={"toUpdate": json.dumps(data)}, params={'searchParams': json.dumps(search_params),
+                                                      'targetTable': target_table, 'stationId': station_id})
 
     # Deletes
 
@@ -229,17 +230,23 @@ class Depth2WaterClient:
         return resp
 
     # Bulk delete
-    def bulk_delete_groundwater_data(self, station_id, start_date=None, end_date=None, data=None):
-        return self.bulk_delete_time_series_data('GROUNDWATER', station_id, start_date=start_date, end_date=end_date, data=data)
+    def bulk_delete_groundwater_data(self, station_id, start_date=None, end_date=None, **kwargs):
+        return self.bulk_delete_time_series_data(
+            'GROUNDWATER', station_id, start_date=start_date, end_date=end_date, **kwargs)
 
-    def bulk_delete_surface_water_data(self, station_id, start_date=None, end_date=None, data=None):
-        return self.bulk_delete_time_series_data('SURFACE_WATER', station_id, start_date=start_date, end_date=end_date, data=data)
+    def bulk_delete_surface_water_data(self, station_id, start_date=None, end_date=None, **kwargs):
+        return self.bulk_delete_time_series_data(
+            'SURFACE_WATER', station_id, start_date=start_date, end_date=end_date, **kwargs)
 
-    def bulk_delete_climate_data(self, station_id, start_date=None, end_date=None, data=None):
-        return self.bulk_delete_time_series_data('CLIMATE', station_id, start_date=start_date, end_date=end_date, data=data)
+    def bulk_delete_climate_data(self, station_id, start_date=None, end_date=None, **kwargs):
+        return self.bulk_delete_time_series_data(
+            'CLIMATE', station_id, start_date=start_date, end_date=end_date, **kwargs)
 
-    def bulk_delete_time_series_data(self, monitoring_type, station_id, start_date=None, end_date=None, data=None):
-        pass
+    def bulk_delete_time_series_data(self, monitoring_type, station_id, start_date=None, end_date=None, **kwargs):
+        path = self.SEARCHABLE_BULK_DELETE_PATHS[monitoring_type]
+        target_table = self.TARGET_TABLES[monitoring_type]
+        search_params = self.get_search_params(station_id, start_date=start_date, end_date=end_date, **kwargs)
+        return self.delete(self._build_url(path), params={'searchParams': json.dumps(search_params), 'targetTable': target_table, 'stationId': station_id})
 
     def _get_searchable(self, path, search_params=[], page=None, url=None):
         if url:
@@ -258,5 +265,37 @@ class Depth2WaterClient:
             'grant_type': 'password',
             'username': self._username,
             'password': self._password}
+
+    def get_search_params(self, station_id, start_date=None, end_date=None, **kwargs):
+        search_params = []
+        if station_id:
+            search_params.append({
+                'operator': '',
+                'column': 'station.station_id',
+                'searchTerm': station_id,
+                'orderBy': False,
+                'direction': ''})
+        if start_date:
+            search_params.append({
+                'operator': 'gte',
+                'column': 'datetime',
+                'searchTerm': start_date,
+                'orderBy': True,
+                'direction': 'asc'})
+        if end_date:
+            search_params.append({
+                'operator': 'lte',
+                'column': 'datetime',
+                'searchTerm': end_date,
+                'orderBy': False,
+                'direction': ''})
+        for key, val in kwargs.items():
+            search_params.append({
+                'operator': '',
+                'column': key,
+                'searchTerm': val,
+                'orderBy': False,
+                'direction': ''})
+        return search_params
 
 
