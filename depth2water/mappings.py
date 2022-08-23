@@ -137,7 +137,8 @@ class TimeSeriesMapping(Mapping):
         'time_date_format': '',
         'datetime_date_format': '',
         'datetime_timezone': 'America/Vancouver',
-        'date_timezone': 'America/Vancouver'
+        'date_timezone': 'America/Vancouver',
+        'published': ''
     }
 
 
