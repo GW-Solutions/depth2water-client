@@ -164,7 +164,9 @@ class GroundwaterMapping(TimeSeriesMapping):
         'temperature_c': '',
         'water_level_compensated_m': '',
         'water_level_non_compensated_m': '',
-        'data_quality_type': ''
+        'data_quality_type': '',
+        'estimated_logger_depth': '',
+        'estimated_logger_depth_units': ''
     }
 
 

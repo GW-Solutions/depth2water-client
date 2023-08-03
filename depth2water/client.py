@@ -137,12 +137,18 @@ class Depth2WaterClient:
         return response.json()
 
     # Gets
-    def get_station_by_station_id(self, station_id):
-        return self.get_station_by_value(column='station_id', value=station_id)
+    def get_station_by_station_id(self, station_id, monitoring_type=None):
+        return self.get_station_by_value(column='station_id', value=station_id, monitoring_type=monitoring_type)
 
-    def get_station_by_value(self, column=None, value=None, url=None, page=None):
+    def get_station_by_value(self, column=None, value=None, url=None, page=None, monitoring_type=None):
+        if monitoring_type is None:
+            monitoring_type = "GROUNDWATER"
+        if monitoring_type not in ("GROUNDWATER", "SURFACE_WATER", "CLIMATE", "SURFACE_WATER_CLIMATE"):
+            raise Exception(f"{monitoring_type} is not a valid monitoring type")
         search_params = [
-            {'operator': '', 'column': column, 'searchTerm': value, 'orderBy': '', 'direction': ''}]
+            {'operator': '', 'column': column, 'searchTerm': value, 'orderBy': '', 'direction': ''},
+            {'operator': '', 'column': "monitoring_type", 'searchTerm': monitoring_type, 'orderBy': '', 'direction': ''}
+        ]
         resp = self._get_searchable(self.STATION_PATH, search_params, url=url, page=page)
         return resp.json()
 
@@ -163,6 +169,13 @@ class Depth2WaterClient:
         search_params = self.get_search_params(station_id, start_date=start_date, end_date=end_date)
         resp = self._get_searchable(path, search_params=search_params, page=page, url=url)
         return resp.json()
+
+    def get_source_file(self, filename, page=None, url=None):
+        path = self.SOURCE_FILE_PATH
+        search_params = self.get_search_params(None, filename=filename)
+        resp = self._get_searchable(path, search_params=search_params, page=page, url=url)
+        return resp.json()
+
 
     # Updates
     def update_groundwater_data(self, id, data):
